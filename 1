@@ -1,0 +1,156 @@
+// 全局变量
+let navData = JSON.parse(localStorage.getItem("navData")) || [
+    {
+        groupName: "常用网站",
+        list: [
+            {name:"百度",link:"https://www.baidu.com",icon:"https://www.baidu.com/favicon.ico"},
+            {name:"B站",link:"https://bilibili.com",icon:"https://www.bilibili.com/favicon.ico"},
+            {name:"Github",link:"https://github.com",icon:"https://github.com/favicon.ico"}
+        ]
+    },
+    {
+        groupName: "办公工具",
+        list: [
+            {name:"腾讯文档",link:"https://docs.weixin.qq.com",icon:"https://docs.weixin.qq.com/favicon.ico"},
+            {name:"飞书",link:"https://www.feishu.cn",icon:"https://www.feishu.cn/favicon.ico"}
+        ]
+    }
+];
+let currentGroupIndex = null;
+let currentLinkIndex = null;
+
+// 页面初始化渲染
+function render() {
+    const container = document.getElementById("navList");
+    container.innerHTML = "";
+    navData.forEach((group, gIdx) => {
+        const groupDom = document.createElement("div");
+        groupDom.className = "nav-group";
+        let linkHtml = "";
+        group.list.forEach((item, lIdx) => {
+            const iconSrc = item.icon || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394a3b8'><path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z'/></svg>";
+            linkHtml += `
+                <div class="link-item-wrap">
+                    <a class="link-item" href="${item.link}" target="_blank">
+                        <img class="site-icon" src="${iconSrc}" alt="${item.name}">
+                        <span>${item.name}</span>
+                        <div class="link-operate">
+                            <span class="edit-link" onclick="openEditLink(${gIdx},${lIdx})">编辑</span>
+                            <span class="del-link" onclick="delLink(${gIdx},${lIdx})">删除</span>
+                        </div>
+                    </a>
+                </div>
+            `;
+        })
+        groupDom.innerHTML = `
+            <h4>
+                ${group.groupName}
+                <div>
+                    <span class="group-edit" onclick="openEditGroup(${gIdx})">重命名</span>
+                    <span class="group-del" onclick="delGroup(${gIdx})">删分组</span>
+                </div>
+            </h4>
+            ${linkHtml}
+            <p style="text-align:center;margin-top:12px;font-size:13px;color:#3b82f6;cursor:pointer" onclick="openAddLink(${gIdx})">+ 添加网站</p>
+        `;
+        container.appendChild(groupDom);
+    })
+    saveData();
+}
+
+// 本地存储保存数据
+function saveData() {
+    localStorage.setItem("navData", JSON.stringify(navData));
+}
+
+// 搜索跳转
+function searchGo() {
+    const val = document.getElementById("searchInput").value.trim();
+    if(!val) return;
+    window.open(`https://www.baidu.com/s?wd=${encodeURIComponent(val)}`);
+}
+
+// 新增分组
+function addGroup() {
+    navData.push({groupName:"新分类",list:[]});
+    render();
+}
+// 删除分组
+function delGroup(gIdx) {
+    if(!confirm("确定删除整个分类及全部网站？")) return;
+    navData.splice(gIdx,1);
+    render();
+}
+// 修改分组名称弹窗
+function openEditGroup(gIdx) {
+    currentGroupIndex = gIdx;
+    document.getElementById("groupNameInput").value = navData[gIdx].groupName;
+    document.getElementById("mask").style.display = "block";
+    document.getElementById("groupPop").style.display = "block";
+}
+function closeGroupPop() {
+    document.getElementById("mask").style.display = "none";
+    document.getElementById("groupPop").style.display = "none";
+}
+function saveGroupName() {
+    const name = document.getElementById("groupNameInput").value.trim();
+    if(!name) return alert("分类名不能为空");
+    navData[currentGroupIndex].groupName = name;
+    closeGroupPop();
+    render();
+}
+
+// 打开新增网站弹窗
+function openAddLink(gIdx) {
+    currentGroupIndex = gIdx;
+    currentLinkIndex = null;
+    document.getElementById("popTitle").innerText = "添加网站";
+    document.getElementById("nameVal").value = "";
+    document.getElementById("linkVal").value = "";
+    document.getElementById("iconVal").value = "";
+    document.getElementById("mask").style.display = "block";
+    document.getElementById("popup").style.display = "block";
+}
+// 打开编辑网站弹窗
+function openEditLink(gIdx,lIdx) {
+    event.preventDefault();
+    currentGroupIndex = gIdx;
+    currentLinkIndex = lIdx;
+    const item = navData[gIdx].list[lIdx];
+    document.getElementById("popTitle").innerText = "编辑网站";
+    document.getElementById("nameVal").value = item.name;
+    document.getElementById("linkVal").value = item.link;
+    document.getElementById("iconVal").value = item.icon || "";
+    document.getElementById("mask").style.display = "block";
+    document.getElementById("popup").style.display = "block";
+}
+// 关闭弹窗
+function closePop() {
+    document.getElementById("mask").style.display = "none";
+    document.getElementById("popup").style.display = "none";
+}
+// 保存网站（新增/编辑通用）
+function saveItem() {
+    const name = document.getElementById("nameVal").value.trim();
+    const link = document.getElementById("linkVal").value.trim();
+    const icon = document.getElementById("iconVal").value.trim();
+    if(!name || !link) return alert("名称和链接不能为空");
+    const data = {name, link, icon};
+    if(currentLinkIndex === null) {
+        navData[currentGroupIndex].list.push(data);
+    } else {
+        navData[currentGroupIndex].list[currentLinkIndex] = data;
+    }
+    closePop();
+    render();
+}
+// 删除单个网站
+function delLink(gIdx,lIdx) {
+    event.preventDefault();
+    if(!confirm("确定删除该网站？")) return;
+    navData[gIdx].list.splice(lIdx,1);
+    render();
+}
+
+// 页面加载自动渲染
+window.onload = render；
